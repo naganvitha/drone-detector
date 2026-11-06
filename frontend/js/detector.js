@@ -9,7 +9,7 @@ function scanFace(now){ /* real face detector, ~4x/second; a face counts as pres
  const d=fx.getImageData(0,0,320,180).data,g=new Uint8Array(57600);for(let i=0;i<57600;i++)g[i]=.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2];
  const r=faceDetect(g,320,180,3,40);if(r.length){r.sort((a,b)=>b[2]-a[2]);const[x,y,s]=r[0];FACE={t:now,box:[x*2,y*2,s*2,s*2]}}}
 /* ---- whole-frame drone scanner: finds a drone ANYWHERE in the frame, moving or still (e.g. a picture held up to the camera) ---- */
-let lastScan=0,scanMs=60,lastLS=0,SC={wins:[],best:null,t:0},TRK={box:null,n:0,miss:0,t:0,z:0};
+let lastScan=0,scanMs=60,lastLS=0,SC={wins:[],best:null,t:0},MTRK=[],nextTrackId=1;
 const iouB=(a,b)=>{const ix=Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)),iy=Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)),i=ix*iy;return i/(a.w*a.h+b.w*b.h-i+1e-9)};
 function scanDrone(now){
  if((mode!=='cam'&&mode!=='img')||now-lastScan<Math.max(200,scanMs*4))return;lastScan=now;
@@ -17,21 +17,30 @@ function scanDrone(now){
  for(let i=0;i<57600;i++)g[i]=(.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2])/255;
  const t=thrZ(),wins=nms(scanFrame(g,320,180,MD,teach&&now<teach.until?-6:t-2.5),6,.3);
  scanMs=performance.now()-now;SC.wins=wins;SC.t=now;
- /* a window that sits on the detected face is never a drone; the rest of the frame is still searched */
- let best=null;const fb=faceNow()&&FACE.box?FACE.box:null;
+ /* Ignore candidate windows that substantially overlap a detected face. */
+ const fb=faceNow()&&FACE.box?FACE.box:null,candidates=[];
  for(const w of wins){
   if(fb){const[fx0,fy0,fw,fh]=fb,X=w.x*2,Y=w.y*2,WW=w.w*2,HH=w.h*2,ix=Math.max(0,Math.min(X+WW,fx0+fw)-Math.max(X,fx0)),iy=Math.max(0,Math.min(Y+HH,fy0+fh)-Math.max(Y,fy0)),i=ix*iy,
     inside=fx0+fw/2>X&&fx0+fw/2<X+WW&&fy0+fh/2>Y&&fy0+fh/2<Y+HH;
    if(i/(WW*HH+fw*fh-i)>.15||(inside&&WW*HH<5*fw*fh))continue}
-  best=w;break}
- SC.best=best;
- /* location persistence: the same place must score high on 3 scans in a row (~0.7 s), so random one-frame hits never trigger */
- if(best&&best.z>=t){const b={x:best.x,y:best.y,w:best.w,h:best.h};
-  if(TRK.box&&iouB(b,TRK.box)>.3){TRK.n++;for(const p of['x','y','w','h'])TRK.box[p]=TRK.box[p]*.5+b[p]*.5}else{TRK.box=b;TRK.n=1}
-  TRK.z=best.z;TRK.miss=0;TRK.t=now}
- else if(++TRK.miss>2){TRK.n=0;TRK.box=null}}
-function scanDet(now){if(TRK.n<3||!TRK.box||now-TRK.t>900)return null;const b=TRK.box;
- return{conf:sig(TRK.z),area:b.w*b.h/4,f:{ring:0},box:[b.x*2,b.y*2,b.w*2,b.h*2],scan:true}}
+  if(w.z>=t)candidates.push(w);
+ }
+ SC.best=candidates[0]||wins[0]||null;
+ /* Associate each current candidate with a different recent track using IoU. These are
+    short-lived display tracks, not permanent drone identities or re-identification. */
+ const matched=new Set();
+ for(const w of candidates){
+  const b={x:w.x,y:w.y,w:w.w,h:w.h};let match=null,bestOverlap=.3;
+  for(const tr of MTRK){if(matched.has(tr.id))continue;const overlap=iouB(b,tr.box);if(overlap>bestOverlap){bestOverlap=overlap;match=tr}}
+  if(match){matched.add(match.id);for(const key of ['x','y','w','h'])match.box[key]=match.box[key]*.5+b[key]*.5;match.n++;match.miss=0;match.t=now;match.z=w.z}
+  else{const tr={id:nextTrackId++,box:b,n:1,miss:0,t:now,z:w.z};MTRK.push(tr);matched.add(tr.id)}
+ }
+ for(const tr of MTRK)if(!matched.has(tr.id)){tr.miss++;tr.n=0;}
+ MTRK=MTRK.filter(tr=>tr.miss<=2&&now-tr.t<1200);
+}
+function scanDets(now){
+ return MTRK.filter(tr=>tr.n>=3&&now-tr.t<=900).sort((a,b)=>b.z-a.z).slice(0,6).map(tr=>{const b=tr.box;return{conf:sig(tr.z),area:b.w*b.h/4,f:{ring:0},box:[b.x*2,b.y*2,b.w*2,b.h*2],scan:true,trackId:tr.id}});
+}
 function learnScan(){ /* Teach buttons also adapt the scanner: online logistic update on the scanned windows */
  if(SC.t===lastLS||!SC.wins.length)return;lastLS=SC.t;
  const ws=teach.l?(SC.best?[SC.best]:[]):SC.wins.filter(w=>w.z>=thrZ()-2.5);

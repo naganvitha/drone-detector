@@ -1,4 +1,4 @@
-function setMode(m){mode=m;bg=null;hist=[];HV=[];FACE={t:0,box:null};TRK={box:null,n:0,miss:0,t:0,z:0};SC={wins:[],best:null,t:0};$('bd').classList.toggle('on',m==='demo');$('bc').classList.toggle('on',m==='cam');$('bi').classList.toggle('on',m==='img');$('dc').style.display=m==='demo'?'grid':'none';$('cc').style.display=m==='demo'?'none':'grid'}
+function setMode(m){mode=m;bg=null;hist=[];HV=[];FACE={t:0,box:null};MTRK=[];nextTrackId=1;SC={wins:[],best:null,t:0};$('bd').classList.toggle('on',m==='demo');$('bc').classList.toggle('on',m==='cam');$('bi').classList.toggle('on',m==='img');$('dc').style.display=m==='demo'?'grid':'none';$('cc').style.display=m==='demo'?'none':'grid'}
 $('bi').onclick=()=>$('fi').click();
 $('fi').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{imgEl=im;$('err').textContent='';setMode('img')};im.onerror=()=>{$('err').textContent='Could not read that image.'};im.src=URL.createObjectURL(f);e.target.value=''};
 $('bd').onclick=()=>{$('err').textContent='';setMode('demo')};

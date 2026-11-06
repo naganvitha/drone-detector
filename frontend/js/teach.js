@@ -18,5 +18,5 @@ function start(l){teach={l,until:performance.now()+3000};tl();setTimeout(tl,3100
 $('tn').onclick=()=>start(0);$('td').onclick=()=>start(1);
 $('tc').onclick=()=>{resetDelta();SAMP=[];try{localStorage.removeItem('droneSamples')}catch(e){}tl()};tl();
 ['sL','sF','sS'].forEach(i=>$(i).oninput=()=>{bg=null;hist=[];HV=[]});
-$('sT').oninput=()=>{$('sTv').textContent=(+$('sT').value).toFixed(1);TRK={box:null,n:0,miss:0,t:0,z:0}};
+$('sT').oninput=()=>{$('sTv').textContent=(+$('sT').value).toFixed(1);MTRK=[];nextTrackId=1};
 $('bf').onclick=()=>{fm=fm==='user'?'environment':'user';if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('bc').onclick()};
