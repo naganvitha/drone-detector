@@ -15,7 +15,13 @@ function scanDrone(now){
  if((mode!=='cam'&&mode!=='img')||now-lastScan<Math.max(200,scanMs*4))return;lastScan=now;
  fx.drawImage(cv,0,0,320,180);const d=fx.getImageData(0,0,320,180).data,g=new Float32Array(57600);
  for(let i=0;i<57600;i++)g[i]=(.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2])/255;
- const t=thrZ(),wins=nms(scanFrame(g,320,180,MD,teach&&now<teach.until?-6:t-2.5),6,.3);
+const t = thrZ();
+const raw = scanFrame(g,320,180,MD,teach&&now<teach.until?-6:t-2.5);
+const wins = nms(raw,6,.15);
+
+console.log("Candidates before NMS:", raw.length);
+console.log("Detections after NMS:", wins.length);
+console.log("Detection scores:", wins.map(w => w.z));
  scanMs=performance.now()-now;SC.wins=wins;SC.t=now;
  /* Ignore candidate windows that substantially overlap a detected face. */
  const fb=faceNow()&&FACE.box?FACE.box:null,candidates=[];
@@ -39,7 +45,7 @@ function scanDrone(now){
  MTRK=MTRK.filter(tr=>tr.miss<=2&&now-tr.t<1200);
 }
 function scanDets(now){
- return MTRK.filter(tr=>tr.n>=3&&now-tr.t<=900).sort((a,b)=>b.z-a.z).slice(0,6).map(tr=>{const b=tr.box;return{conf:sig(tr.z),area:b.w*b.h/4,f:{ring:0},box:[b.x*2,b.y*2,b.w*2,b.h*2],scan:true,trackId:tr.id}});
+ return MTRK.filter(tr=>tr.n>=3&&now-tr.t<=1500).sort((a,b)=>b.z-a.z).slice(0,6).map(tr=>{const b=tr.box;return{conf:sig(tr.z),area:b.w*b.h/4,f:{ring:0},box:[b.x*2,b.y*2,b.w*2,b.h*2],scan:true,trackId:tr.id}});
 }
 function learnScan(){ /* Teach buttons also adapt the scanner: online logistic update on the scanned windows */
  if(SC.t===lastLS||!SC.wins.length)return;lastLS=SC.t;
