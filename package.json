@@ -1,0 +1,16 @@
+{
+  "name": "live-drone-detector",
+  "version": "1.0.0",
+  "description": "Live drone detector with confidence check: static frontend, small Node backend, JSON model database",
+  "private": true,
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node --test backend/tests/api.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "compression": "^1.7.4",
+    "express": "^4.19.2"
+  }
+}

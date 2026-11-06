@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Live drone detector</title>
+<link rel="stylesheet" href="css/styles.css">
+</head><body><main>
+<h1>Live drone detector with confidence check</h1>
+<div class="lay">
+<section class="card"><canvas id="cv" width="640" height="360" aria-label="Video feed"></canvas>
+<div class="bar"><button id="bd" class="on">Demo scene</button><button id="bc">Use camera</button><button id="bi" title="Check the detector on a still picture, no camera needed">Test with image</button><input type="file" id="fi" accept="image/*" hidden><button id="bf" title="Switch front/back camera">Flip camera</button><span id="fps" class="note" style="margin:0"></span></div>
+<div class="msg" id="err" role="alert"></div>
+<div class="sl" id="dc"><label for="sL">Light</label><input type="range" id="sL" min="0.15" max="1" step="0.01" value="1">
+<label for="sF">Fog</label><input type="range" id="sF" min="0" max="1" step="0.01" value="0">
+<label for="sS">Drone size</label><input type="range" id="sS" min="3" max="30" step="1" value="22"></div>
+<div class="sl" id="cc" style="display:none"><label for="sT">Strictness <span id="sTv">2.0</span></label><input type="range" id="sT" min="0" max="5" step="0.1" value="2"></div>
+<p class="note">Demo scene: a simulated drone flies across a sky. Lower the light, add fog or shrink the drone and watch the reliability message change.</p></section>
+<aside class="card" aria-live="polite">
+<h2>Detector</h2><p class="st" id="status">Starting…</p>
+<div class="m"><div><span>Detector confidence</span><strong id="raw">–</strong></div><div class="tr"><i id="rb"></i></div></div>
+<div class="m"><div><span>Calibrated confidence</span><strong id="cal">–</strong></div><div class="tr"><i id="cb"></i></div></div>
+<div class="v" id="vd"><b id="vt">Waiting for a frame</b><span id="vm"></span></div>
+<h2>Teach the detector</h2><div class="bar" style="margin:0 0 4px"><button id="tn">Not a drone (3 s)</button><button id="td">Drone (3 s)</button><button id="tc">Clear</button></div><p class="note" id="tl" style="margin:0 0 10px"></p>
+<h2>Scene conditions</h2><div class="chips" id="chips"></div>
+<canvas id="sp" width="320" height="70" style="margin-top:12px;background:transparent" aria-label="Confidence history"></canvas>
+<p class="note">Line: raw confidence. Dashed: calibrated confidence. Camera and image modes: the whole frame is scanned at several sizes by a classifier trained on 483 drone photos, so a drone can be found even when it is not moving (for example a picture held up to the camera). A hit must stay in the same place for 3 scans in a row. A face detector (OpenCV Haar cascade) only blocks windows that sit on the face. Lower Strictness finds more drones but gives more false alarms; if something is wrongly flagged, hold it in view and press “Not a drone (3 s)” so the detector adapts to your camera. Weights come from train_drone.py.</p>
+</aside></div></main>
+<script src="js/bootstrap.js"></script>
+</body></html>
